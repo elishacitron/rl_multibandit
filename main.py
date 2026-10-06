@@ -19,35 +19,33 @@ class Bandit:
 
 
 class Agent:
-    def __init__(self, bandit: Bandit, alpha: float, epsilon: float):
+    def __init__(self, n_arms: int, alpha: float, epsilon: float, seed=None):
         """Alpha = learning rate; epsilon = random exploration rate"""
-        self.bandit = bandit
-        self.working_r_dist = [0.0 for _ in range(self.bandit.n_arms)]
+        self.n_arms = n_arms
+        self.action_values = [0.0] * self.n_arms
         self.alpha = alpha
         self.epsilon = epsilon
+        self.rng = random.Random(seed)
 
-    def optimal_arm(self):
-        return max(range(self.bandit.n_arms), key=lambda a: self.working_r_dist[a])
+    def greedy_arm(self):
+        return max(range(self.n_arms), key=lambda a: self.action_values[a])
 
-    def update_working_r_dist(self, arm: int, r: float):
-        self.working_r_dist[arm] += self.alpha * (r - self.working_r_dist[arm])
+    def update(self, arm: int, r: float):
+        self.action_values[arm] += self.alpha * (r - self.action_values[arm])
 
     def select_action(self):
-        if self.bandit.rng.random() < self.epsilon:
-            arm = self.bandit.rng.randrange(self.bandit.n_arms)
+        if self.rng.random() < self.epsilon:
+            return self.rng.randrange(self.n_arms)
         else:
-            arm = self.optimal_arm()
-        r = self.bandit.sample(arm)
-        self.update_working_r_dist(arm, r)
-        return arm, r
+            return self.greedy_arm()
 
 RESULTS_DIR = Path("results")
 
 def main():
 
-    r_dist = [0.1, 0.2, 0.4, 0.3, 0.45]
-    bandit = Bandit(r_dist, 42)
-    agent = Agent(bandit, alpha=0.1, epsilon=0.1)
+    r_dist = [0.1, 0.2, 0.4, 0.3, 0.6]
+    bandit = Bandit(r_dist, seed=42)
+    agent = Agent(n_arms=len(r_dist), alpha=0.1, epsilon=0.1, seed=24)
 
     n_trials = 1000
     window_size = 50
@@ -57,12 +55,14 @@ def main():
     print("Running trials...")
 
     for _ in range(n_trials):
-        _, r = agent.select_action()
+        arm = agent.select_action()
+        r = bandit.sample(arm)
+        agent.update(arm, r)
         recent_rewards.append(r)
 
         rolling_avg_reward.append(sum(recent_rewards) / len(recent_rewards))
 
-    print(f"Working reward distribution:\n{agent.working_r_dist}")
+    print(f"Working reward distribution:\n{agent.action_values}")
 
     plt.figure()
     plt.plot(rolling_avg_reward, label="Rolling average reward")

@@ -7,43 +7,33 @@ DRIFT_FREQ_MEAN = 0
 DRIFT_FREQ_SD = 5
 
 class Bandit(ABC):
-    def __init__(self, initial_r_vals: list, seed=None) -> None:
-        self.initial_r_vals = initial_r_vals
-        self.n_arms = len(self.initial_r_vals)
+    def __init__(self, r_vals: list, seed=None) -> None:
+        self.r_vals = r_vals
+        self.n_arms = len(self.r_vals)
         self.rng = random.Random(seed)
+
+    def optimal_arm(self) -> int:
+        return max(range(self.n_arms), key=lambda a: self.r_vals[a])
 
     @abstractmethod
     def sample(self, arm:int) -> float:
         pass
 
-    @abstractmethod
-    def optimal_arm(self) -> int:
-        pass
 
-    @abstractmethod
-    def step(self) -> None:
-        pass
-
-
-class StationaryBandit(Bandit):
+class StationaryGaussianBandit(Bandit):
     def sample(self, arm: int) -> float:
-        return self.rng.gauss(self.initial_r_vals[arm], 1.0)
+        return self.rng.gauss(self.r_vals[arm], 1.0)
 
-    def optimal_arm(self) -> int:
-        return max(range(self.n_arms), key=lambda a: self.initial_r_vals[a])
 
-    def step(self) -> None:
-        pass
+class StationaryBinaryBandit(Bandit):
+    def sample(self, arm: int) -> float:
+        p = self.r_vals[arm]
+        return 1.0 if self.rng.random() < p else 0.0
 
 
 class OscillatingBandit(Bandit):
-    def __init__(self, initial_r_vals: list, seed=None):
-        super().__init__(initial_r_vals, seed)
-        self.r_dist = list(initial_r_vals)  # current means; drift should update these
-
     # TODO: finish drift(), call it from step()
     def drift(self):
-
         for arm_idx in range(self.n_arms):
             a = abs(random.gauss(DRIFT_AMPLITUDE_MEAN, DRIFT_AMPLITUDE_SD)) # Drift amplitude
             b = abs(random.gauss(DRIFT_FREQ_MEAN, DRIFT_FREQ_SD)) # Drift frequency
@@ -55,11 +45,8 @@ class OscillatingBandit(Bandit):
         # Then, at each step (trial), update each arm's r by taking some step 'along' the function
 
     def step(self) -> None:
-        # TODO: advance time and update self.r_dist via drift()
+        # TODO: advance time and update self.r_vals via drift()
         pass
 
-    def sample(self, arm: int) -> float:
-        return self.rng.gauss(self.r_dist[arm], 1.0)
-
-    def optimal_arm(self) -> int:
-        return max(range(self.n_arms), key=lambda a: self.r_dist[a])
+    def sample(self, arm: int) -> None:
+        pass

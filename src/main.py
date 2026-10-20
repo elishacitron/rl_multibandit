@@ -1,13 +1,13 @@
-from agents import Agent
-from bandits import StationaryBandit
+from agents import EpsilonGreedyAgent
+from bandits import StationaryGaussianBandit
 from experiment import run_experiment
 from plotting import plot_results
 
 
 def main():
     r_dist = [1.0, 2.0, 3.0, 1.5, 2.5]
-    bandit = StationaryBandit(r_dist, seed=42)
-    agent = Agent(n_arms=len(r_dist), alpha=0.1, epsilon=0.1, seed=24)
+    bandit = StationaryGaussianBandit(r_dist, seed=42)
+    agent = EpsilonGreedyAgent(n_options=len(r_dist), alpha=0.1, epsilon=0.1, seed=24)
 
     print("Running trials...")
     rolling_avg_reward = run_experiment(bandit, agent, n_trials=1000)
